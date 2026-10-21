@@ -10,13 +10,152 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download project
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check project files
+      - name: Create Android Project
+        shell: bash
         run: |
-          ls -la
-          find . -maxdepth 3 -type f
+          mkdir -p app/src/main/java/com/alihclient/bedrock
+          mkdir -p app/src/main/res/values
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "AlihClient"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          echo "org.gradle.jvmargs=-Xmx2048m" > gradle.properties
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.alihclient.bedrock'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.alihclient.bedrock'
+                  minSdk 26
+                  targetSdk 28
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:theme="@android:style/Theme.Material.NoActionBar"
+                  android:label="AlihClient">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/alihclient/bedrock/MainActivity.java <<'EOF'
+          package com.alihclient.bedrock;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.content.Intent;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.graphics.drawable.GradientDrawable;
+          import android.widget.*;
+
+          public class MainActivity extends Activity {
+              @Override
+              public void onCreate(Bundle b) {
+                  super.onCreate(b);
+
+                  LinearLayout root = new LinearLayout(this);
+                  root.setOrientation(1);
+                  root.setPadding(28,40,28,28);
+                  root.setBackgroundColor(Color.rgb(8,13,27));
+
+                  TextView logo = new TextView(this);
+                  logo.setText("◆ AlihClient");
+                  logo.setTextSize(30);
+                  logo.setTextColor(Color.rgb(99,229,255));
+                  logo.setTypeface(null,Typeface.BOLD);
+                  root.addView(logo);
+
+                  TextView title = new TextView(this);
+                  title.setText("MINECRAFT BEDROCK");
+                  title.setTextSize(21);
+                  title.setTextColor(Color.WHITE);
+                  title.setPadding(0,45,0,12);
+                  root.addView(title);
+
+                  TextView info = new TextView(this);
+                  info.setText("Your world. Your rules.\\n\\nMinecraft мобильді нұсқасына арналған клиент.");
+                  info.setTextSize(15);
+                  info.setTextColor(Color.LTGRAY);
+                  root.addView(info);
+
+                  Button play = new Button(this);
+                  play.setText("▶  PLAY MINECRAFT");
+                  play.setAllCaps(false);
+                  play.setTextColor(Color.WHITE);
+
+                  GradientDrawable shape = new GradientDrawable();
+                  shape.setColor(Color.rgb(24,100,145));
+                  shape.setCornerRadius(35);
+                  shape.setStroke(2,Color.rgb(99,229,255));
+                  play.setBackground(shape);
+
+                  LinearLayout.LayoutParams p =
+                      new LinearLayout.LayoutParams(-1,65);
+                  p.topMargin = 35;
+                  root.addView(play,p);
+
+                  play.setOnClickListener(v -> {
+                      Intent i = getPackageManager()
+                          .getLaunchIntentForPackage("com.mojang.minecraftpe");
+
+                      if (i != null) {
+                          startActivity(i);
+                      } else {
+                          Toast.makeText(this,
+                              "Minecraft Bedrock орнатылмаған!",
+                              Toast.LENGTH_LONG).show();
+                      }
+                  });
+
+                  setContentView(root);
+              }
+          }
+          EOF
 
       - name: Setup Java
         uses: actions/setup-java@v4
